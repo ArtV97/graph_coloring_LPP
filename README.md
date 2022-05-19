@@ -8,6 +8,6 @@ Trabalho da disciplina Laboratório de Programação Paralela da Universidade Fe
 
 ## versão openMP
 ### Compilando e Executando
-1) gcc hello.c -o hello -fopenmp
+1) gcc my_program.c -o program_executable -fopenmp
 2) ./program_executable
 
