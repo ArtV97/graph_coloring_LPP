@@ -1,5 +1,6 @@
-#include "util.h"
+#include <time.h>
 #include "mpi.h"
+#include "util.h"
 
 #define ERROR_READING_GRAPH 1
 
@@ -18,25 +19,32 @@ int *cor = NULL;
 
 int coloring(int **graph, int n, int v, int t) {
     t++;
+    // atualiza o PE na posicao v
     PE[v] = t;
 
     for (int w = 0; w < n; w++) {
         if (!graph[v][w]) continue;
 
         if (PE[w] == 0) {
+            // atualiza o pai na posicao w
             pai[w] = v;
+
+            // atualiza a cor na posicao w
             cor[w] = 1 - cor[v];
+
             if (coloring(graph, n, w, t)) return 1;
         }
         else if (PS[w] == 0 && w != pai[v]) {
             if (cor[w] != cor[v]) continue;
             else {
-                printf("Nao eh 2-colorivel\n");
+                fprintf(stderr, "Nao eh 2-colorivel\n");
+                MPI_Abort(MPI_COMM_WORLD, 1);
                 return 1;
             }
         }
     }
     t++;
+    // atualiza o PS na posicao v
     PS[v] = t;
     return 0;
 }
@@ -55,11 +63,15 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // graph variables
-    int **graph = NULL;
-    int n;
+    int **graph = NULL; // matrix representing the graph
+    int n; // number of vertex
 
     if (rank == 0) {
-        char *filename = argv[1];
+        char *filename = argv[1]; // file containing the graph
+
+        //////////////////////
+        // initializing graph
+        //////////////////////
         graph = read_file(filename, &n);
         if (!graph) {
             printf("Error reading graph\n");
@@ -67,19 +79,42 @@ int main(int argc, char **argv) {
             return 0;
         }
 
+        ////////////////////////////////
         // broadcast n to other threads
+        ////////////////////////////////
         MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+        ////////////////////////////////////
         // broadcast graph to other threads
+        ////////////////////////////////////
         for (int i = 0; i < n; i++){
             MPI_Bcast(graph[i], n, MPI_INT, 0, MPI_COMM_WORLD);
         }
-        PE = (int *)calloc(n, sizeof(int));
-        PS = (int *)calloc(n, sizeof(int));
-        pai = (int *)calloc(n, sizeof(int));
-        cor = (int *)calloc(n, sizeof(int));
 
-        // o processo 0 ira gerenciar a busca
-        // usar a tag do Send e Recv para descobrir o que fazer
+        MPI_Barrier(MPI_COMM_WORLD); // 1 sync
+
+        //////////////////////////////////////////////
+        // Assigning Random Numbers to all vertex.
+        // It is done in parallel using MPI_Allgatherv
+        //////////////////////////////////////////////
+        srand(time(NULL)); // seed of rand
+
+        int rank0_part_n = n / size + n % size;
+        int part_n = n / size;
+        int w_send[part_n]; // Starting address of send buffer
+        int w_recv[n]; // Starting address of recv buffer
+        int recvcounts[size]; // number of elements that are received from each process
+        int displs[size]; // displacement (relative to recvbuf) at which to place the incoming data from process i
+
+        recvcounts[0] = rank0_part_n;
+        for (int i = 1; i < size; i++) recvcounts[i] = part_n;
+
+        for (int i = 0; i < rank0_part_n; i++) w_send[i] = rand(); //w_send[i] = 100 + (rand() % 1000);
+
+        displs[0] = 0;
+        for (int i = 1; i < size; i++) displs[i] = ((i-1) * part_n) + rank0_part_n;
+
+        MPI_Allgatherv(w_send, rank0_part_n, MPI_INT, w_recv, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
 
     }
     else {
@@ -91,69 +126,44 @@ int main(int argc, char **argv) {
             MPI_Bcast(graph[i], n, MPI_INT, 0, MPI_COMM_WORLD);
         }
 
+        MPI_Barrier(MPI_COMM_WORLD); // 1 sync
+
         // for (int i = 0; i < n; i++) {
-        //     for (int j = 0; j < n; j++) {
-        //         printf("graph[%d][%d] = %d\n", i, j, graph[i][j]);
-        //     }
+        //     for (int j = 0; j < n; j++) printf("graph[%d][%d] = %d\n", i, j, graph[i][j]);
         // }
 
-        PE = (int *)calloc(n, sizeof(int));
-        PS = (int *)calloc(n, sizeof(int));
-        pai = (int *)calloc(n, sizeof(int));
-        cor = (int *)calloc(n, sizeof(int));
+        //////////////////////////////////////////////
+        // Assigning Random Numbers to all vertex.
+        // It is done in parallel using MPI_Allgatherv
+        //////////////////////////////////////////////
+        srand(time(NULL) + rank); // seed of rand
 
-        // if (!coloring(graph, n, 0, 0)) {
-        //     printf("Eh 2-colorivel\n");
-        // }
-                
+        int rank0_part_n = n / size + n % size;
+        int part_n = n / size;
+        int w_send[part_n];
+        int w_recv[n];
+        int recvcounts[size];
+        int displs[size];
 
-        // n,m = input().split()               # ler numero de vertices e arestas
-        // n = int(n)
-        // m = int(m)
-        // n_out = [[] * n for i in range(n)]  # definir listas de adjacencia
-        // for j in range(m):                  # ler as m arestas do digrafo
-        //     a,b = input().split()           # ler aresta de a para b
-        //     a = int(a)
-        //     b = int(b)
-        //     n_out[a].append(b)          # acrescentar b como vizinho de saida de a
-        // entrou = n * [False]
-        // saiu = n * [False]
-        // ciclo = False                       # inicializar variavel ciclo
-        // a = 0
-        // while a<n and not ciclo:
-        //     if not entrou[a]:
-        //         pilha = [a]
-        //         while pilha and not ciclo:
-        //             v = pilha[-1]
-        //             entrou[v] = True
-        //             if n_out[v]:
-        //                 while n_out[v] and not ciclo:
-        //                     w = n_out[v].pop()
-        //                     if not entrou[w]:
-        //                         pilha.append(w)
-        //                         break
-        //                     elif not saiu[w]:
-        //                         ciclo = True
-        //             else:
-        //                 saiu[v] = True
-        //                 pilha.pop()
-        //     a += 1
-        // if ciclo:
-        //     print('SIM')
-        // else:
-        //     print('NAO')
-        
+        recvcounts[0] = rank0_part_n;
+        for (int i = 1; i < size; i++) recvcounts[i] = part_n;
+
+        for (int i = 0; i < part_n; i++) w_send[i] = rand(); //w_send[i] = rand() % 99;
+
+        displs[0] = 0;
+        for (int i = 1; i < size; i++) displs[i] = ((i-1) * part_n) + rank0_part_n;
+
+        MPI_Allgatherv(w_send, part_n, MPI_INT, w_recv, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
+
+        // printf("Process %d\n", rank);
+        // for (int i = 0; i < n; i++) printf("w[%d] = %d ", i, w_recv[i]);
+        // printf("\n");
     }
 
-    free(graph);
     for (int i = 0; i < n; i++) {
         free(graph[i]);
     }
-    free(PE);
-    free(PS);
-    free(pai);
-    free(cor);
-
+    free(graph);
     
     MPI_Finalize();
     return 0;
