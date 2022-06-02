@@ -2,7 +2,7 @@
 
 all: util.o main.c
 	-mkdir bin
-	mpicc util.o main.c -o bin/2coloring
+	mpicc util.o main.c -o bin/jones_plassmann
 
 util.o: util.c
 	gcc -c util.c
