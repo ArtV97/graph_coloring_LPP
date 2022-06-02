@@ -43,11 +43,11 @@ int **read_file(char *filename, int *n) {
     return graph;
 }
 
-int **get_neighbours(int **graph, int n, int v) {
+int **get_uncolored_neighbours(int **graph, int n, int v, int *color) {
     int *count = calloc(1, sizeof(int));
     int *neighbours = malloc(n*sizeof(int));
     for (int w = 0; w < n; w++) {
-        if (graph[v][w]) {
+        if (color[w] == -1 && graph[v][w]) {
             count[0]++;
             neighbours[count[0]-1] = w;
         }
