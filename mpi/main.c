@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
             color[i] = -1;
         }
         int finished_counter = 0;
-        int **resp = malloc(2*sizeof(int*));
+        int **resp;
         int header[2];
         while (finished_counter != size-1) { // coloring loop
             MPI_Recv(header, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
@@ -110,6 +110,7 @@ int main(int argc, char **argv) {
 
                 free(resp[0]);
                 free(resp[1]);
+                free(resp);
             }
             else if (status.MPI_TAG == TAG_COLORS_N_V) {
                 // header = [vertex, NULL]
@@ -125,6 +126,7 @@ int main(int argc, char **argv) {
 
                 free(resp[0]);
                 free(resp[1]);
+                free(resp);
             }
             else if (status.MPI_TAG == TAG_COLOR_SET_I) {
                 // header = [color, size of set set_I]
