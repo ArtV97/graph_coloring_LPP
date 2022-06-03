@@ -43,21 +43,57 @@ int **read_file(char *filename, int *n) {
     return graph;
 }
 
+int **get_uncolored_neighbours(int **graph, int n, int v, int *color) {
+    int *count = calloc(1, sizeof(int));
+    int *neighbours = malloc(n*sizeof(int));
+    for (int w = 0; w < n; w++) {
+        if (color[w] == -1 && graph[v][w]) {
+            count[0]++;
+            neighbours[count[0]-1] = w;
+        }
+    }
+    
+    neighbours = realloc(neighbours, count[0]*sizeof(int));
+    int **resp = malloc(2*sizeof(int*));
+    resp[0] = count;
+    resp[1] = neighbours;
+
+    return resp;
+}
+
+int **get_neighbours_color(int **graph, int n, int v, int *color) {
+    int *count = calloc(1, sizeof(int));
+    int *neighbours_colors = malloc(n*sizeof(int));
+    for (int w = 0; w < n; w++) {
+        if (graph[v][w]) {
+            count[0]++;
+            neighbours_colors[count[0]-1] = color[w];
+        }
+    }
+    
+    neighbours_colors = realloc(neighbours_colors, count[0]*sizeof(int));
+    int **resp = malloc(2*sizeof(int*));
+    resp[0] = count;
+    resp[1] = neighbours_colors;
+
+    return resp;
+}
+
+
 // int main(int argc, char *argv[]){
-//     char *v;
-//     char *e;
-//     read_file("data_example/1.txt", &v, &e);
-//     printf("Vertex = %s\n", v);
-//     printf("Edges = %s\n\n", e);
-
-
-//     int m;
 //     int n;
+//     int **graph;
+//     graph = read_file("../data_example/2.txt", &n);
 
-//     calc_m_n(v, e, &m, &n);
+//     int **resp = get_neighbours(graph, n, 3);
+//     printf("resp[0] = %d\n", *resp[0]);
+//     for (int i = 0; i < *resp[0]; i++) {
+//         printf("resp[1][%d] = %d\n", i, resp[1][i]);
+//     }
 
-//     printf("m = %d, n = %d\n", m, n);
-//     free(v);
-//     free(e);
+//     for (int i = 0; i < n; i++) {
+//         free(graph[i]);
+//     }
+//     free(graph);
 //     return 0;
 // }
