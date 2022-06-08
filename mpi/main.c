@@ -5,49 +5,12 @@
 #define ERROR_READING_GRAPH 1
 
 
-#define TAG_NOT_2_COLORING -1
-#define TAG_ATT_PE          0
-#define TAG_ATT_PS          1
-#define TAG_ATT_PAI         2
-#define TAG_ATT_COR         3
+#define TAG_GET_N_V         0   // get neighbours of vertex v
+#define TAG_COLORS_N_V      1   // get colors of neighbours of vertex v
+#define TAG_COLOR_SET_I     2   // color set set_I with color c
+#define TAG_FINESHED        3   // process finished processing
 
 
-int *PE = NULL;
-int *PS = NULL;
-int *pai = NULL;
-int *cor = NULL;
-
-int coloring(int **graph, int n, int v, int t) {
-    t++;
-    // atualiza o PE na posicao v
-    PE[v] = t;
-
-    for (int w = 0; w < n; w++) {
-        if (!graph[v][w]) continue;
-
-        if (PE[w] == 0) {
-            // atualiza o pai na posicao w
-            pai[w] = v;
-
-            // atualiza a cor na posicao w
-            cor[w] = 1 - cor[v];
-
-            if (coloring(graph, n, w, t)) return 1;
-        }
-        else if (PS[w] == 0 && w != pai[v]) {
-            if (cor[w] != cor[v]) continue;
-            else {
-                fprintf(stderr, "Nao eh 2-colorivel\n");
-                MPI_Abort(MPI_COMM_WORLD, 1);
-                return 1;
-            }
-        }
-    }
-    t++;
-    // atualiza o PS na posicao v
-    PS[v] = t;
-    return 0;
-}
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -87,9 +50,9 @@ int main(int argc, char **argv) {
         ////////////////////////////////////
         // broadcast graph to other threads
         ////////////////////////////////////
-        for (int i = 0; i < n; i++){
-            MPI_Bcast(graph[i], n, MPI_INT, 0, MPI_COMM_WORLD);
-        }
+        // for (int i = 0; i < n; i++){
+        //     MPI_Bcast(graph[i], n, MPI_INT, 0, MPI_COMM_WORLD);
+        // }
 
         MPI_Barrier(MPI_COMM_WORLD); // 1 sync
 
@@ -109,28 +72,91 @@ int main(int argc, char **argv) {
         recvcounts[0] = rank0_part_n;
         for (int i = 1; i < size; i++) recvcounts[i] = part_n;
 
-        for (int i = 0; i < rank0_part_n; i++) w_send[i] = rand(); //w_send[i] = 100 + (rand() % 1000);
+        for (int i = 0; i < rank0_part_n; i++) w_send[i] = rand() % 1000; //w_send[i] = 100 + (rand() % 1000);
 
         displs[0] = 0;
         for (int i = 1; i < size; i++) displs[i] = ((i-1) * part_n) + rank0_part_n;
 
         MPI_Allgatherv(w_send, rank0_part_n, MPI_INT, w_recv, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
 
+        printf("w = ");
+        for (int i = 0; i < n; i++) {
+            printf("%d ", w_recv[i]);
+        }
+        printf("\n");
+
+        ////////////////////////////////////////////////////////////////
+        // Process 0 manages the variables used in the coloring process
+        ////////////////////////////////////////////////////////////////
+        int color[n];
+        for(int i = 0; i < n; i++){
+            color[i] = -1;
+        }
+        int finished_counter = 0;
+        int **resp;
+        int header[2];
+        while (finished_counter != size-1) { // coloring loop
+            MPI_Recv(header, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+
+            if (status.MPI_TAG == TAG_GET_N_V) {
+                resp = get_uncolored_neighbours(graph, n, header[0], color);
+                
+                // Send number of neighbours
+                int size = *resp[0];
+                MPI_Send(resp[0], 1, MPI_INT, status.MPI_SOURCE, TAG_GET_N_V, MPI_COMM_WORLD);
+
+                // Send neighbours
+                MPI_Send(resp[1], *resp[0], MPI_INT, status.MPI_SOURCE, TAG_GET_N_V, MPI_COMM_WORLD);
+
+                free(resp[0]);
+                free(resp[1]);
+                free(resp);
+            }
+            else if (status.MPI_TAG == TAG_COLORS_N_V) {
+                // header = [vertex, NULL]
+                resp = get_neighbours_color(graph, n, header[0], color);
+                
+                // Send number of colors
+                MPI_Send(resp[0], 1, MPI_INT, status.MPI_SOURCE, TAG_COLORS_N_V, MPI_COMM_WORLD);
+
+                // Send neighbours colors
+                if (resp[0]) {
+                    MPI_Send(resp[1], *resp[0], MPI_INT, status.MPI_SOURCE, TAG_COLORS_N_V, MPI_COMM_WORLD);
+                }
+
+                free(resp[0]);
+                free(resp[1]);
+                free(resp);
+            }
+            else if (status.MPI_TAG == TAG_COLOR_SET_I) {
+                // header = [color, size of set set_I]
+                int set_I[header[1]];
+                MPI_Recv(set_I, header[1], MPI_INT, status.MPI_SOURCE, TAG_COLOR_SET_I, MPI_COMM_WORLD, &status);
+
+                for (int i = 0; i < header[1]; i++) {
+                    color[set_I[i]] = header[0];
+                }
+            }
+            else if (status.MPI_TAG == TAG_FINESHED) {
+                finished_counter++;
+            }
+        }
+
+        //MPI_Abort(MPI_COMM_WORLD, ERROR_READING_GRAPH);
+        printf("Colors: ");
+        for(int i = 0; i < n; i++){
+            printf("%d ", color[i]);
+        }
+        printf("\n");
+
+        for (int i = 0; i < n; i++) {
+            free(graph[i]);
+        }
+        free(graph);
     }
     else {
         MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-        printf("Rank = %d, n = %d\n", rank, n);
-        graph = (int **)calloc(n, sizeof(int *));
-        for (int i = 0; i < n; i++) {
-            graph[i] = (int *)calloc(n, sizeof(int));
-            MPI_Bcast(graph[i], n, MPI_INT, 0, MPI_COMM_WORLD);
-        }
-
         MPI_Barrier(MPI_COMM_WORLD); // 1 sync
-
-        // for (int i = 0; i < n; i++) {
-        //     for (int j = 0; j < n; j++) printf("graph[%d][%d] = %d\n", i, j, graph[i][j]);
-        // }
 
         //////////////////////////////////////////////
         // Assigning Random Numbers to all vertex.
@@ -148,23 +174,118 @@ int main(int argc, char **argv) {
         recvcounts[0] = rank0_part_n;
         for (int i = 1; i < size; i++) recvcounts[i] = part_n;
 
-        for (int i = 0; i < part_n; i++) w_send[i] = rand(); //w_send[i] = rand() % 99;
+        for (int i = 0; i < part_n; i++) w_send[i] = rand() % 1000; //w_send[i] = rand() % 99;
 
         displs[0] = 0;
         for (int i = 1; i < size; i++) displs[i] = ((i-1) * part_n) + rank0_part_n;
 
         MPI_Allgatherv(w_send, part_n, MPI_INT, w_recv, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
 
-        // printf("Process %d\n", rank);
-        // for (int i = 0; i < n; i++) printf("w[%d] = %d ", i, w_recv[i]);
-        // printf("\n");
-    }
+        int rest = 0;
+        part_n = n / (size-1);
+        if (rank == size-1) rest = n % (size-1);
 
-    for (int i = 0; i < n; i++) {
-        free(graph[i]);
+        /////////////////////////////////////////
+        // vertex to be colored by process "rank"
+        /////////////////////////////////////////
+        int set_I[part_n]; // independent set I
+        int header[2];
+        int colored[part_n+rest];
+        for (int i = 0; i < part_n+rest; i++) colored[i] = 0;
+        while (1) {
+            int count = -1;
+            int size_I = 0;
+            for (int v = (rank-1)*part_n; v < (rank-1)*part_n + part_n + rest; v++) {
+                count++;
+                if (colored[v-((rank-1)*part_n)]) continue;
+                ///////////////////////
+                // get neighbours of v
+                ///////////////////////
+                int neighbours_size;
+                
+                // ask for neighbours of v
+                header[0] = v; // empty header
+                header[1] = 0;
+                MPI_Send(header, 2, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD);
+
+                // receive neighbours size
+                MPI_Recv(&neighbours_size, 1, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD, &status);
+
+                // receive neighbours of v
+                int neighbours[neighbours_size];
+                MPI_Recv(neighbours, neighbours_size, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD, &status);
+
+                ///////////////////////////
+                // build independent set I
+                ///////////////////////////
+                int add_to_set_i = 1;
+                for (int i = 0; i < neighbours_size; i++) {
+                    int w = neighbours[i];
+                    if (w_recv[v] < w_recv[w]) {
+                        add_to_set_i = 0;
+                        break;
+                    }
+                }
+
+                if (add_to_set_i) {
+                    set_I[size_I] = v;
+                    size_I++;
+                }
+            }
+
+            for (int i = 0; i < size_I; i++) {
+                colored[set_I[i]-((rank-1)*part_n)] = 1;
+                int v_i = set_I[i];
+                int colors_size;
+                
+                /////////////////////////
+                // get neighbours colors
+                /////////////////////////
+                header[0] = v_i;
+                MPI_Send(header, 2, MPI_INT, 0, TAG_COLORS_N_V, MPI_COMM_WORLD);
+
+                // receive colors size
+                MPI_Recv(&colors_size, 1, MPI_INT, 0, TAG_COLORS_N_V, MPI_COMM_WORLD, &status);
+
+                // receive colors of v_i
+                int neighbours_colors[colors_size];
+                if (colors_size) {
+                    MPI_Recv(neighbours_colors, colors_size, MPI_INT, 0, TAG_COLORS_N_V, MPI_COMM_WORLD, &status);
+                }
+
+                ////////////////////
+                // color vertex v_i
+                ////////////////////
+                int max = -1;
+                for (int j = 0; j < colors_size; j++) {
+                    if (neighbours_colors[j] > max) max = neighbours_colors[j];
+                }
+                max++;
+                header[0] = max; // color to be used
+                header[1] = size_I;
+                
+                // send size of independent set I
+                MPI_Send(header, 2, MPI_INT, 0, TAG_COLOR_SET_I, MPI_COMM_WORLD);
+
+                // send independent set I
+                MPI_Send(set_I, size_I, MPI_INT, 0, TAG_COLOR_SET_I, MPI_COMM_WORLD);
+            }
+                
+            int all_colored = 1;
+            for (int i = 0; i < part_n+rest; i++) {
+                if (!colored[i]) {
+                    all_colored = 0;
+                    break;
+                }
+            }
+
+            if (all_colored) {
+                MPI_Send(header, 2, MPI_INT, 0, TAG_FINESHED, MPI_COMM_WORLD);
+                break;
+            }
+        }
     }
-    free(graph);
-    
+   
     MPI_Finalize();
     return 0;
 }
