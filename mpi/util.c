@@ -48,8 +48,8 @@ int **get_uncolored_neighbours(int **graph, int n, int v, int *color) {
     int *neighbours = malloc(n*sizeof(int));
     for (int w = 0; w < n; w++) {
         if (color[w] == -1 && graph[v][w]) {
+            neighbours[count[0]] = w;
             count[0]++;
-            neighbours[count[0]-1] = w;
         }
     }
     
@@ -66,8 +66,8 @@ int **get_neighbours_color(int **graph, int n, int v, int *color) {
     int *neighbours_colors = malloc(n*sizeof(int));
     for (int w = 0; w < n; w++) {
         if (graph[v][w]) {
+            neighbours_colors[count[0]] = color[w];
             count[0]++;
-            neighbours_colors[count[0]-1] = color[w];
         }
     }
     

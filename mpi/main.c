@@ -10,7 +10,7 @@
 #define TAG_COLOR_SET_I     2   // color set set_I with color c
 #define TAG_FINESHED        3   // process finished processing
 
-
+#define UNCHOOSE_COLOR 9999999
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -256,12 +256,28 @@ int main(int argc, char **argv) {
                 ////////////////////
                 // color vertex v_i
                 ////////////////////
-                int max = -1;
+                int min_color = -1;
                 for (int j = 0; j < colors_size; j++) {
-                    if (neighbours_colors[j] > max) max = neighbours_colors[j];
+                    if (neighbours_colors[j] < min_color) min_color = neighbours_colors[j];
                 }
-                max++;
-                header[0] = max; // color to be used
+
+                if (min_color - 1 >= 0) {
+                    min_color--;
+                }
+                else {
+                    min_color = 0;
+                    int prev_min_color = -1;
+                    while (prev_min_color != min_color) {
+                        prev_min_color = min_color;
+                        for (int i = 0; i < colors_size; i++) {
+                            if (neighbours_colors[i] == min_color) {
+                                min_color++;
+                                break;
+                            }
+                        }
+                    }
+                }
+                header[0] = min_color; // color to be used
                 header[1] = size_I;
                 
                 // send size of independent set I

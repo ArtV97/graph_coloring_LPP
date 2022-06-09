@@ -1,6 +1,8 @@
 #include <time.h>
 #include "util.h"
 
+#define UNCHOOSE_COLOR 9999999
+
 int main(int argc, char **argv) {
     if (argc != 2) {
         printf("Missing argument <filename>\n");
@@ -37,13 +39,35 @@ int main(int argc, char **argv) {
         int neighbours_colors_size = *resp[0];
         int *neighbours_colors = resp[1];
 
-        int max_color = -1;
+        int min_color = UNCHOOSE_COLOR;
         for (int j = 0; j < neighbours_colors_size; j++) {
-            if (neighbours_colors[j] > max_color) max_color = neighbours_colors[j];
+            if (neighbours_colors[j] < min_color) min_color = neighbours_colors[j];
         }
         
-        max_color++;
-        color[v] = max_color;
+        ///////////////////////
+        // Choosing color of v
+        ///////////////////////
+        if (min_color == UNCHOOSE_COLOR) {
+            min_color = 0;
+        }
+        else if (min_color - 1 >= 0) {
+            min_color--;
+        }
+        else {
+            min_color = 1;
+            int prev_min_color = 0;
+            while (prev_min_color != min_color) {
+                prev_min_color = min_color;
+                for (int i = 0; i < neighbours_colors_size; i++) {
+                    if (neighbours_colors[i] == min_color) {
+                        min_color++;
+                        break;
+                    }
+                }
+            }
+        }
+
+        color[v] = min_color;
 
         free(resp[0]);
         free(resp[1]);

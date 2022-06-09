@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "*.ejs": "html",
-        "*.old": "c"
+        "*.old": "c",
+        "random": "c",
+        "limits": "c"
     }
 }

@@ -65,7 +65,7 @@ int **get_neighbours_color(int **graph, int n, int v, int *color) {
     int *count = calloc(1, sizeof(int));
     int *neighbours_colors = malloc(n*sizeof(int));
     for (int w = 0; w < n; w++) {
-        if (graph[v][w]) {
+        if (color[w] != -1 && graph[v][w]) {
             count[0]++;
             neighbours_colors[count[0]-1] = color[w];
         }
