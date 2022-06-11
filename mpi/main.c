@@ -95,6 +95,9 @@ int main(int argc, char **argv) {
         int finished_counter = 0;
         int **resp;
         int header[2];
+
+        clock_t initial = clock();
+
         while (finished_counter != size-1) { // coloring loop
             MPI_Recv(header, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
@@ -141,6 +144,10 @@ int main(int argc, char **argv) {
                 finished_counter++;
             }
         }
+    
+        clock_t final = clock();
+        double result = ((double)(final-initial)/CLOCKS_PER_SEC);
+        printf("Calculation Execution Time: %lf\n", result);    
 
         //MPI_Abort(MPI_COMM_WORLD, ERROR_READING_GRAPH);
         printf("Colors: ");

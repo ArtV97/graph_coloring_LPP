@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
     
     int **resp; // used to receive awnser of neighbours function
 
+    clock_t initial = clock();
     for (int v = 0; v < n; v++) {
         
         resp = get_neighbours_color(graph, n, v, color);
@@ -73,6 +74,9 @@ int main(int argc, char **argv) {
         free(resp[1]);
         free(resp);
     }
+    clock_t final = clock();
+    double result = ((double)(final-initial)/CLOCKS_PER_SEC);
+	printf("Calculation Execution Time: %lf\n", result);    
     
     printf("Colors: ");
     for (int i = 0; i < n; i++) {
