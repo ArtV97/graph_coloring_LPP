@@ -4,5 +4,6 @@
         "*.old": "c",
         "random": "c",
         "limits": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // graph variables
-    int **graph = NULL; // matrix representing the graph
+    int *graph = NULL; // matrix representing the graph
     int n; // number of vertex
 
     if (rank == 0) {
@@ -156,9 +156,9 @@ int main(int argc, char **argv) {
         }
         printf("\n");
 
-        for (int i = 0; i < n; i++) {
-            free(graph[i]);
-        }
+        // for (int i = 0; i < n; i++) {
+        //     free(graph[i]);
+        // }
         free(graph);
     }
     else {

@@ -10,7 +10,7 @@ int main(int argc, char **argv) {
     }
 
     // graph variables
-    int **graph = NULL; // matrix representing the graph
+    int *graph = NULL; // matrix representing the graph
     int n; // number of vertex
 
     char *filename = argv[1]; // file containing the graph
@@ -84,10 +84,12 @@ int main(int argc, char **argv) {
     }
     printf("\n");
 
-    for (int i = 0; i < n; i++) {
-        free(graph[i]);
-    }
-    free(graph); 
+    // for (int i = 0; i < n; i++) {
+    //     free(graph[i]);
+    // }
+    // free(graph);
+
+    free(graph);
 
     return 0;
 }

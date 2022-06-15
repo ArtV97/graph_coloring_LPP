@@ -1,6 +1,6 @@
 #include "util.h"
 
-int **read_file(char *filename, int *n) {
+int *read_file(char *filename, int *n) {
     FILE *f = fopen(filename, "r");
     if (f == NULL) return NULL;
 
@@ -17,11 +17,13 @@ int **read_file(char *filename, int *n) {
     if (!p) return NULL;
     m = atoi(p);
 
-    int **graph;
-    graph = (int **)calloc(*n, sizeof(int *));
-    for (int i = 0; i < *n; i++) {
-        graph[i] = (int *)calloc(*n, sizeof(int));
-    }
+    // int **graph;
+    // graph = (int **)calloc(*n, sizeof(int *));
+    // for (int i = 0; i < *n; i++) {
+    //     graph[i] = (int *)calloc(*n, sizeof(int));
+    // }
+    int *graph = calloc((*n)*(*n), sizeof(int));
+    
     for (int i = 0; i < m; i++) {
         int v, w;
         if (!fgets(line, BUFFER_SZ, f)) return 0;
@@ -34,8 +36,10 @@ int **read_file(char *filename, int *n) {
         if (!p) return NULL;
         w = atoi(p);
 
-        graph[v][w] = 1;
-        graph[w][v] = 1;
+        //graph[v][w] = 1;
+        graph[w+(v*(*n))] = 1;
+        //graph[w][v] = 1;
+        graph[v+(w*(*n))] = 1;
     }
 
     fclose(f);
@@ -43,11 +47,16 @@ int **read_file(char *filename, int *n) {
     return graph;
 }
 
-int **get_uncolored_neighbours(int **graph, int n, int v, int *color) {
+int get_graph_val(int *graph, int v, int w, int n) {
+    return graph[w+(v*n)];
+}
+
+int **get_uncolored_neighbours(int *graph, int n, int v, int *color) {
     int *count = calloc(1, sizeof(int));
     int *neighbours = malloc(n*sizeof(int));
     for (int w = 0; w < n; w++) {
-        if (color[w] == -1 && graph[v][w]) {
+        //if (color[w] == -1 && graph[v][w]) {
+        if (color[w] == -1 && get_graph_val(graph, v, w, n)) {
             count[0]++;
             neighbours[count[0]-1] = w;
         }
@@ -61,11 +70,12 @@ int **get_uncolored_neighbours(int **graph, int n, int v, int *color) {
     return resp;
 }
 
-int **get_neighbours_color(int **graph, int n, int v, int *color) {
+int **get_neighbours_color(int *graph, int n, int v, int *color) {
     int *count = calloc(1, sizeof(int));
     int *neighbours_colors = malloc(n*sizeof(int));
     for (int w = 0; w < n; w++) {
-        if (color[w] != -1 && graph[v][w]) {
+        //if (color[w] != -1 && graph[v][w]) {
+        if (color[w] != -1 && get_graph_val(graph, v, w, n)) {
             count[0]++;
             neighbours_colors[count[0]-1] = color[w];
         }
