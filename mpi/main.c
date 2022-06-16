@@ -77,13 +77,15 @@ int main(int argc, char **argv) {
         displs[0] = 0;
         for (int i = 1; i < size; i++) displs[i] = ((i-1) * part_n) + rank0_part_n;
 
+        clock_t initial = clock();
+
         MPI_Allgatherv(w_send, rank0_part_n, MPI_INT, w_recv, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
 
-        printf("w = ");
-        for (int i = 0; i < n; i++) {
-            printf("%d ", w_recv[i]);
-        }
-        printf("\n");
+        // printf("w = ");
+        // for (int i = 0; i < n; i++) {
+        //     printf("%d ", w_recv[i]);
+        // }
+        // printf("\n");
 
         ////////////////////////////////////////////////////////////////
         // Process 0 manages the variables used in the coloring process
@@ -95,8 +97,6 @@ int main(int argc, char **argv) {
         int finished_counter = 0;
         int **resp;
         int header[2];
-
-        clock_t initial = clock();
 
         while (finished_counter != size-1) { // coloring loop
             MPI_Recv(header, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
