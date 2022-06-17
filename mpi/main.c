@@ -7,10 +7,9 @@
 
 #define TAG_GET_N_V         0   // get neighbours of vertex v
 #define TAG_COLORS_N_V      1   // get colors of neighbours of vertex v
-#define TAG_COLOR_SET_I     2   // color set set_I with color c
+#define TAG_COLOR_VI        2   // color vertex Vi of the set_I with color c
 #define TAG_FINESHED        3   // process finished processing
 
-#define UNCHOOSE_COLOR 9999999
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -35,7 +34,7 @@ int main(int argc, char **argv) {
         //////////////////////
         // initializing graph
         //////////////////////
-        graph = read_file(filename, &n);
+        graph = read_file(filename);
         if (!graph) {
             printf("Error reading graph\n");
             MPI_Abort(MPI_COMM_WORLD, ERROR_READING_GRAPH);
@@ -45,15 +44,8 @@ int main(int argc, char **argv) {
         ////////////////////////////////
         // broadcast n to other threads
         ////////////////////////////////
+        n = graph->n;
         MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-        ////////////////////////////////////
-        // broadcast graph to other threads
-        ////////////////////////////////////
-        // for (int i = 0; i < n; i++){
-        //     MPI_Bcast(graph[i], n, MPI_INT, 0, MPI_COMM_WORLD);
-        // }
-
         MPI_Barrier(MPI_COMM_WORLD); // 1 sync
 
         //////////////////////////////////////////////
@@ -102,7 +94,7 @@ int main(int argc, char **argv) {
             MPI_Recv(header, 2, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
             if (status.MPI_TAG == TAG_GET_N_V) {
-                resp = get_uncolored_neighbours(graph, n, header[0], color);
+                resp = get_uncolored_neighbours(graph, header[0], color);
                 
                 // Send number of neighbours
                 int size = *resp[0];
@@ -117,7 +109,7 @@ int main(int argc, char **argv) {
             }
             else if (status.MPI_TAG == TAG_COLORS_N_V) {
                 // header = [vertex, NULL]
-                resp = get_neighbours_color(graph, n, header[0], color);
+                resp = get_neighbours_color(graph, header[0], color);
                 
                 // Send number of colors
                 MPI_Send(resp[0], 1, MPI_INT, status.MPI_SOURCE, TAG_COLORS_N_V, MPI_COMM_WORLD);
@@ -131,14 +123,9 @@ int main(int argc, char **argv) {
                 free(resp[1]);
                 free(resp);
             }
-            else if (status.MPI_TAG == TAG_COLOR_SET_I) {
-                // header = [color, size of set set_I]
-                int set_I[header[1]];
-                MPI_Recv(set_I, header[1], MPI_INT, status.MPI_SOURCE, TAG_COLOR_SET_I, MPI_COMM_WORLD, &status);
-
-                for (int i = 0; i < header[1]; i++) {
-                    color[set_I[i]] = header[0];
-                }
+            else if (status.MPI_TAG == TAG_COLOR_VI) {
+                // header = [vertex, color]
+                color[header[0]] = header[1];
             }
             else if (status.MPI_TAG == TAG_FINESHED) {
                 finished_counter++;
@@ -194,8 +181,10 @@ int main(int argc, char **argv) {
         /////////////////////////////////////////
         int set_I[part_n]; // independent set I
         int header[2];
-        int colored[part_n+rest];
-        for (int i = 0; i < part_n+rest; i++) colored[i] = 0;
+        //int colored[part_n+rest];
+        //for (int i = 0; i < part_n+rest; i++) colored[i] = 0;
+        int *colored = calloc(part_n+rest, sizeof(int));
+
         while (1) {
             int count = -1;
             int size_I = 0;
@@ -207,15 +196,15 @@ int main(int argc, char **argv) {
                 ///////////////////////
                 int neighbours_size;
                 
-                // ask for neighbours of v
+                // ask for uncolored neighbours of v
                 header[0] = v; // empty header
                 header[1] = 0;
                 MPI_Send(header, 2, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD);
 
-                // receive neighbours size
+                // receive uncolored neighbours size
                 MPI_Recv(&neighbours_size, 1, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD, &status);
 
-                // receive neighbours of v
+                // receive uncolored neighbours of v
                 int neighbours[neighbours_size];
                 MPI_Recv(neighbours, neighbours_size, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD, &status);
 
@@ -260,35 +249,23 @@ int main(int argc, char **argv) {
                 ////////////////////
                 // color vertex v_i
                 ////////////////////
-                int min_color = -1;
-                for (int j = 0; j < colors_size; j++) {
-                    if (neighbours_colors[j] < min_color) min_color = neighbours_colors[j];
-                }
-
-                if (min_color - 1 >= 0) {
-                    min_color--;
-                }
-                else {
-                    min_color = 0;
-                    int prev_min_color = -1;
-                    while (prev_min_color != min_color) {
-                        prev_min_color = min_color;
-                        for (int i = 0; i < colors_size; i++) {
-                            if (neighbours_colors[i] == min_color) {
-                                min_color++;
-                                break;
-                            }
+                int min_color = 0;
+                int prev_min_color = -1;
+                while (prev_min_color != min_color) {
+                    prev_min_color = min_color;
+                    for (int i = 0; i < colors_size; i++) {
+                        if (neighbours_colors[i] == min_color) {
+                            min_color++;
+                            break;
                         }
                     }
                 }
-                header[0] = min_color; // color to be used
-                header[1] = size_I;
-                
-                // send size of independent set I
-                MPI_Send(header, 2, MPI_INT, 0, TAG_COLOR_SET_I, MPI_COMM_WORLD);
 
-                // send independent set I
-                MPI_Send(set_I, size_I, MPI_INT, 0, TAG_COLOR_SET_I, MPI_COMM_WORLD);
+                header[0] = v_i; // vertex to be colored
+                header[1] = min_color; // color to be used
+                
+                // Coloring vertex v_i
+                MPI_Send(header, 2, MPI_INT, 0, TAG_COLOR_VI, MPI_COMM_WORLD);
             }
                 
             int all_colored = 1;
@@ -301,6 +278,7 @@ int main(int argc, char **argv) {
 
             if (all_colored) {
                 MPI_Send(header, 2, MPI_INT, 0, TAG_FINESHED, MPI_COMM_WORLD);
+                free(colored);
                 break;
             }
         }

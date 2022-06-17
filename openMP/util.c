@@ -1,23 +1,24 @@
 #include "util.h"
 
-Graph *read_file(char *filename, int *n) {
+Graph *read_file(char *filename) {
     FILE *f = fopen(filename, "r");
     if (f == NULL) return NULL;
 
     char line[BUFFER_SZ+1];
     char *p;
-    int m; // n vertex, m edges
+    int n; // n vertex
+    int m; // m edges
 
     if (!fgets(line, BUFFER_SZ, f)) return 0;
     p = strtok(line, " ");
     if (!p) return NULL;        
-    *n = atoi(p);
+    n = atoi(p);
     
     p = strtok(NULL, " ");
     if (!p) return NULL;
     m = atoi(p);
 
-    Graph *g = graph_init(*n);
+    Graph *g = graph_init(n);
     
     for (int i = 0; i < m; i++) {
         int v, w;
@@ -39,11 +40,11 @@ Graph *read_file(char *filename, int *n) {
 }
 
 
-int **get_uncolored_neighbours(Graph *graph, int n, int v, int *color) {
+int **get_uncolored_neighbours(Graph *g, int v, int *color) {
     int *count = calloc(1, sizeof(int));
-    int *neighbours = malloc(n*sizeof(int));
-    for (int w = 0; w < n; w++) {
-        if (color[w] == -1 && graph_get_val(graph, v, w)) {
+    int *neighbours = malloc(g->n*sizeof(int));
+    for (int w = 0; w < g->n; w++) {
+        if (color[w] == -1 && graph_get_val(g, v, w)) {
             count[0]++;
             neighbours[count[0]-1] = w;
         }
@@ -58,11 +59,11 @@ int **get_uncolored_neighbours(Graph *graph, int n, int v, int *color) {
 }
 
 
-int **get_neighbours_color(Graph *graph, int n, int v, int *color) {
+int **get_neighbours_color(Graph *g, int v, int *color) {
     int *count = calloc(1, sizeof(int));
-    int *neighbours_colors = malloc(n*sizeof(int));
-    for (int w = 0; w < n; w++) {
-        if (color[w] != -1 && graph_get_val(graph, v, w)) {
+    int *neighbours_colors = malloc(g->n*sizeof(int));
+    for (int w = 0; w < g->n; w++) {
+        if (color[w] != -1 && graph_get_val(g, v, w)) {
             count[0]++;
             neighbours_colors[count[0]-1] = color[w];
         }
@@ -75,22 +76,3 @@ int **get_neighbours_color(Graph *graph, int n, int v, int *color) {
 
     return resp;
 }
-
-
-// int main(int argc, char *argv[]){
-//     int n;
-//     int **graph;
-//     graph = read_file("../data_example/2.txt", &n);
-
-//     int **resp = get_neighbours(graph, n, 3);
-//     printf("resp[0] = %d\n", *resp[0]);
-//     for (int i = 0; i < *resp[0]; i++) {
-//         printf("resp[1][%d] = %d\n", i, resp[1][i]);
-//     }
-
-//     for (int i = 0; i < n; i++) {
-//         free(graph[i]);
-//     }
-//     free(graph);
-//     return 0;
-// }

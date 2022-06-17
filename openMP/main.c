@@ -2,8 +2,6 @@
 #include <omp.h>
 #include "util.h"
 
-#define UNCHOOSE_COLOR 9999999
-
 int main(int argc, char **argv) {
     // graph variables
     Graph *graph = NULL; // matrix representing the graph
@@ -20,12 +18,12 @@ int main(int argc, char **argv) {
     //////////////////////
     // initializing graph
     //////////////////////
-    graph = read_file(filename, &n);
+    graph = read_file(filename);
     if (!graph) {
         printf("Error reading graph\n");
         return 1;
     }
-    //int num_threads = 2+(n / 1000);
+
     omp_set_num_threads(num_threads);
 
     /////////////////////////////
@@ -60,7 +58,7 @@ int main(int argc, char **argv) {
             if (color[v] != -1) continue; // already colored
             //printf("v: %d thread: %d\n", v, omp_get_thread_num());
 
-            int **resp = get_uncolored_neighbours(graph, n, v, color);
+            int **resp = get_uncolored_neighbours(graph, v, color);
             int neighbours_size = *resp[0];
             int *neighbours = resp[1];
 
@@ -99,7 +97,7 @@ int main(int argc, char **argv) {
             //printf("%d ", set_I[i]);
 
             int v_i = set_I[i];
-            int **resp = get_neighbours_color(graph, n, v_i, color);
+            int **resp = get_neighbours_color(graph, v_i, color);
             int neighbours_colors_size = *resp[0];
             int *neighbours_colors = resp[1];
 
