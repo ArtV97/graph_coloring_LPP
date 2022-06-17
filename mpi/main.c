@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // graph variables
-    int *graph = NULL; // matrix representing the graph
+    Graph *graph = NULL; // matrix representing the graph
     int n; // number of vertex
 
     if (rank == 0) {
@@ -147,7 +147,6 @@ int main(int argc, char **argv) {
     
         clock_t final = clock();
         double result = ((double)(final-initial)/CLOCKS_PER_SEC);
-        printf("Calculation Execution Time: %lf\n", result);    
 
         //MPI_Abort(MPI_COMM_WORLD, ERROR_READING_GRAPH);
         printf("Colors: ");
@@ -155,11 +154,9 @@ int main(int argc, char **argv) {
             printf("%d ", color[i]);
         }
         printf("\n");
+        printf("Calculation Execution Time: %lf\n", result);
 
-        // for (int i = 0; i < n; i++) {
-        //     free(graph[i]);
-        // }
-        free(graph);
+        graph_destroy(graph);
     }
     else {
         MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);

@@ -1,8 +1,11 @@
 
 
-all: util.o main.c
+all: graph.o util.o main.c
 	-mkdir bin
-	gcc util.o main.c -o bin/jones_plassmann -fopenmp
+	gcc graph.o util.o main.c -o bin/jones_plassmann -fopenmp
+
+graph.o: graph.c
+	gcc -c graph.c
 
 util.o: util.c
 	gcc -c util.c

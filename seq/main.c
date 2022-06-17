@@ -1,7 +1,6 @@
 #include <time.h>
 #include "util.h"
 
-//#define UNCHOOSE_COLOR 9999999
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -10,7 +9,8 @@ int main(int argc, char **argv) {
     }
 
     // graph variables
-    int *graph = NULL; // matrix representing the graph
+    //int *graph = NULL; // matrix representing the graph
+    Graph *graph = NULL; // matrix representing the graph
     int n; // number of vertex
 
     char *filename = argv[1]; // file containing the graph
@@ -88,7 +88,6 @@ int main(int argc, char **argv) {
     }
     clock_t final = clock();
     double result = ((double)(final-initial)/CLOCKS_PER_SEC);
-	printf("Calculation Execution Time: %lf\n", result);    
     
     printf("Colors: ");
     for (int i = 0; i < n; i++) {
@@ -96,12 +95,16 @@ int main(int argc, char **argv) {
     }
     printf("\n");
 
+	printf("Calculation Execution Time: %lf\n", result);    
+
     // for (int i = 0; i < n; i++) {
     //     free(graph[i]);
     // }
     // free(graph);
 
-    free(graph);
+    //free(graph);
+
+    graph_destroy(graph);
 
     return 0;
 }

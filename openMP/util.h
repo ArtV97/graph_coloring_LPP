@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "graph.h"
 
 #define BUFFER_SZ 1024
 
-int *read_file(char *filename, int *n);
+Graph *read_file(char *filename, int *n);
 
-int **get_uncolored_neighbours(int *graph, int n, int v, int *color);
+int **get_uncolored_neighbours(Graph *graph, int n, int v, int *color);
 
-int **get_neighbours_color(int *graph, int n, int v, int *color);
+int **get_neighbours_color(Graph *graph, int n, int v, int *color);
