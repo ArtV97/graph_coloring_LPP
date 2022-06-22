@@ -5,7 +5,6 @@
 int main(int argc, char **argv) {
     // graph variables
     Graph *graph = NULL; // matrix representing the graph
-    int n; // number of vertex
 
     if (argc < 3) {
         printf("Missing arguments.\n");
@@ -29,13 +28,12 @@ int main(int argc, char **argv) {
     /////////////////////////////
     // generating random weights
     /////////////////////////////
-    int w[n];
+    int w[graph->n];
     srand(time(NULL)); // seed of rand
     //printf("w = ");
 
-    clock_t initial = clock();
     #pragma omp parallel for
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < graph->n; i++) {
         w[i] = rand() % 10000;
         //printf("%d ", w[i]);
     }
@@ -44,17 +42,17 @@ int main(int argc, char **argv) {
     ////////////
     // coloring
     ////////////
-    int color[n];
-    for (int i = 0; i < n; i++) color[i] = -1;
+    int color[graph->n];
+    for (int i = 0; i < graph->n; i++) color[i] = -1;
     int colored_count = 0;
 
-    int set_I[n];
+    int set_I[graph->n];
     int size_I = 0;
 
-    while (colored_count < n) {
+    while (colored_count < graph->n) {
 
         #pragma omp parallel for
-        for (int v = 0; v < n; v++) {
+        for (int v = 0; v < graph->n; v++) {
             if (color[v] != -1) continue; // already colored
             //printf("v: %d thread: %d\n", v, omp_get_thread_num());
 
@@ -129,16 +127,12 @@ int main(int argc, char **argv) {
         size_I = 0;
     }
     
-    clock_t final = clock();
-    double result = ((double)(final-initial)/CLOCKS_PER_SEC);
-
     printf("Colors: ");
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < graph->n; i++) {
         printf("%d ", color[i]);
     }
     printf("\n");
 
-	printf("Calculation Execution Time: %lf\n", result);     
     graph_destroy(graph);
 
     return 0;
