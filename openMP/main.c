@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
     /////////////////////////////
     // generating random weights
     /////////////////////////////
+    double initial = omp_get_wtime();
     int w[graph->n];
     srand(time(NULL)); // seed of rand
     //printf("w = ");
@@ -126,12 +127,14 @@ int main(int argc, char **argv) {
         }
         size_I = 0;
     }
-    
+    double final = omp_get_wtime();
+    double result = final - initial;
     printf("Colors: ");
     for (int i = 0; i < graph->n; i++) {
         printf("%d ", color[i]);
     }
     printf("\n");
+    printf("Calculation Execution Time: %lf\n", result);
 
     graph_destroy(graph);
 

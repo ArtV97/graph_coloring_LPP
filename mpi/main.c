@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
         // It is done in parallel using MPI_Allgatherv
         //////////////////////////////////////////////
         srand(time(NULL)); // seed of rand
+        double initial = MPI_Wtime();
 
         int rank0_part_n = n / size + n % size;
         int part_n = n / size;
@@ -68,8 +69,6 @@ int main(int argc, char **argv) {
 
         displs[0] = 0;
         for (int i = 1; i < size; i++) displs[i] = ((i-1) * part_n) + rank0_part_n;
-
-        clock_t initial = clock();
 
         MPI_Allgatherv(w_send, rank0_part_n, MPI_INT, w_recv, recvcounts, displs, MPI_INT, MPI_COMM_WORLD);
 
@@ -132,8 +131,8 @@ int main(int argc, char **argv) {
             }
         }
     
-        clock_t final = clock();
-        double result = ((double)(final-initial)/CLOCKS_PER_SEC);
+        double final = MPI_Wtime();
+        double result = final-initial;
 
         //MPI_Abort(MPI_COMM_WORLD, ERROR_READING_GRAPH);
         printf("Colors: ");
