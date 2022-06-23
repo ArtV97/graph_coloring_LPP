@@ -20,7 +20,8 @@ do
     for c in $(seq 5)
     do
         echo "$input - $c" >> ${openMP_file}
-        { time ./openMP/bin/jones_plassmann ${NUM_THREADS} data_example/${input}; } 2>&1 | grep "real" >> ${openMP_file}
+        # { time ./openMP/bin/jones_plassmann ${NUM_THREADS} data_example/${input}; } 2>&1 | grep "real" >> ${openMP_file}
+        ./openMP/bin/jones_plassmann ${NUM_THREADS} data_example/${input} | tail -n 1 | cut -d " " -f 4  >> ${openMP_file}
     done
     echo "===" >> ${openMP_file}
 done
@@ -31,7 +32,8 @@ do
     for c in $(seq 5)
     do
         echo "$input - $c" >> ${mpi_file}
-        { time mpiexec -n ${NUM_PROCESSES} ./mpi/bin/jones_plassmann data_example/${input}; } 2>&1 | grep "real" >> ${mpi_file}
+        # { time mpiexec -n ${NUM_PROCESSES} ./mpi/bin/jones_plassmann data_example/${input}; } 2>&1 | grep "real" >> ${mpi_file}
+        mpiexec -n ${NUM_PROCESSES} ./mpi/bin/jones_plassmann data_example/${input} | tail -n 1 | cut -d " " -f 4  >> ${mpi_file}
     done
     echo "===" >> ${mpi_file}
 done

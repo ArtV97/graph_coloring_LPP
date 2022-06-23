@@ -10,7 +10,8 @@ do
     for c in $(seq 5)
     do
         echo "$input - $c" >> ${seq_file}
-        { time ./seq/bin/seq_coloring data_example/${input}; } 2>&1 | grep "real" >> ${seq_file}
+        # { time ./seq/bin/seq_coloring data_example/${input}; } 2>&1 | grep "real" >> ${seq_file}
+        ./seq/bin/seq_coloring data_example/${input} | tail -n 1 | cut -d " " -f 4 >> ${seq_file}
     done
     echo "===" >> ${seq_file}
 done
