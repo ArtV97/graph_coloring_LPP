@@ -100,7 +100,9 @@ int main(int argc, char **argv) {
                 MPI_Send(resp[0], 1, MPI_INT, status.MPI_SOURCE, TAG_GET_N_V, MPI_COMM_WORLD);
 
                 // Send neighbours
-                MPI_Send(resp[1], *resp[0], MPI_INT, status.MPI_SOURCE, TAG_GET_N_V, MPI_COMM_WORLD);
+                if (*resp[0]) {
+                    MPI_Send(resp[1], *resp[0], MPI_INT, status.MPI_SOURCE, TAG_GET_N_V, MPI_COMM_WORLD);
+                }
 
                 free(resp[0]);
                 free(resp[1]);
@@ -114,7 +116,7 @@ int main(int argc, char **argv) {
                 MPI_Send(resp[0], 1, MPI_INT, status.MPI_SOURCE, TAG_COLORS_N_V, MPI_COMM_WORLD);
 
                 // Send neighbours colors
-                if (resp[0]) {
+                if (*resp[0]) {
                     MPI_Send(resp[1], *resp[0], MPI_INT, status.MPI_SOURCE, TAG_COLORS_N_V, MPI_COMM_WORLD);
                 }
 
@@ -205,7 +207,9 @@ int main(int argc, char **argv) {
 
                 // receive uncolored neighbours of v
                 int neighbours[neighbours_size];
-                MPI_Recv(neighbours, neighbours_size, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD, &status);
+                if (neighbours_size) {
+                    MPI_Recv(neighbours, neighbours_size, MPI_INT, 0, TAG_GET_N_V, MPI_COMM_WORLD, &status);
+                }
 
                 ///////////////////////////
                 // build independent set I
