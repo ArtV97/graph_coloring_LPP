@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# != 2 ]
+if [ $# != 1 ]
 then
     echo "missing parameters: <num_MPI_processess>"
     exit 1
